@@ -9,7 +9,7 @@
     <ImageView
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:src="@mipmap/ic_launcher"
+        android:src="@drawable/bluetooth"
         android:contentDescription="Icône de l'application"/>
 
     <TextView
@@ -23,7 +23,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Cette application permet de scanner les appareils BLE aux alentours."
+        android:text="Pour démarer votre interactions avec les appareils BLE environants, cliquer sur LANCER LE SCAN"
         android:textSize="16sp"
         android:paddingTop="8dp"
         android:textAlignment="center"/>
@@ -34,5 +34,7 @@
         android:layout_height="wrap_content"
         android:text="Lancer le scan"
         android:padding="10dp"
+        android:background="@drawable/button_gradient"
         android:layout_marginTop="20dp"/>
+
 </LinearLayout>
