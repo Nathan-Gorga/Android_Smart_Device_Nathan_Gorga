@@ -5,36 +5,43 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Titre -->
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Ligne avec le Titre et l'icône Bluetooth -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scan BLE"
-        android:textSize="24sp"
-        android:textStyle="bold"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_gravity="center"
-        android:paddingTop="16dp"/>
+        android:paddingTop="16dp">
 
-    <!-- Image pour le scan -->
-    <ImageView
-        android:id="@+id/scanIcon"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:src="@drawable/bouton_pause"
-        android:contentDescription="Icône de scan"
-        android:layout_gravity="center"
-        android:paddingTop="20dp" />
+        <!-- Titre -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Scan BLE"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" /> <!-- Espace entre le texte et l'icône -->
+
+        <!-- Image pour le scan -->
+        <ImageView
+            android:id="@+id/scanIcon"
+            android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/bluetooth"
+        android:contentDescription="Icône de scan" />
+    </LinearLayout>
 
     <!-- Bouton pour lancer/arrêter le scan -->
     <ImageButton
         android:id="@+id/scanButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/bouton_play"
-        android:contentDescription="Lancer/Arrêter le scan"
-        android:background="?android:attr/selectableItemBackground"
-        android:layout_gravity="center"
-        android:layout_marginTop="30dp" />
+        android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:src="@drawable/bouton_play"
+    android:contentDescription="Lancer/Arrêter le scan"
+    android:background="?android:attr/selectableItemBackground"
+    android:layout_gravity="center"
+    android:layout_marginTop="30dp" />
 
     <!-- RecyclerView pour afficher la liste des appareils -->
     <androidx.recyclerview.widget.RecyclerView

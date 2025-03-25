@@ -1,6 +1,7 @@
 package fr.isen.nathangorga.androidsmartdevice
 
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -35,14 +36,14 @@ class ScanActivity : ComponentActivity() {
             // Arrêter le scan
             isScanning = false
             Toast.makeText(this, "Scan arrêté", Toast.LENGTH_SHORT).show()
-            // Modifier l'icône pour refléter l'état du bouton (arrêt)
-            scanButton.setImageResource(R.drawable.bouton_play) // Exemple
+            scanButton.setImageResource(R.drawable.bouton_play) // Icône Play
+            deviceListRecyclerView.visibility = View.GONE // Cacher la liste
         } else {
             // Démarrer le scan
             isScanning = true
             Toast.makeText(this, "Scan démarré", Toast.LENGTH_SHORT).show()
-            // Modifier l'icône pour refléter l'état du bouton (démarrer)
-            scanButton.setImageResource(R.drawable.bouton_pause) // Exemple
+            scanButton.setImageResource(R.drawable.bouton_pause) // Icône Pause
+            deviceListRecyclerView.visibility = View.VISIBLE // Afficher la liste
         }
     }
 
