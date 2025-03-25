@@ -7,6 +7,12 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+
 
 class ScanActivity : ComponentActivity() {
     private lateinit var deviceListRecyclerView: RecyclerView
@@ -32,18 +38,36 @@ class ScanActivity : ComponentActivity() {
     }
 
     private fun toggleScan() {
-        if (isScanning) {
-            // Arrêter le scan
-            isScanning = false
-            Toast.makeText(this, "Scan arrêté", Toast.LENGTH_SHORT).show()
-            scanButton.setImageResource(R.drawable.bouton_play) // Icône Play
-            deviceListRecyclerView.visibility = View.GONE // Cacher la liste
+        if (isBluetoothAvailable()) {
+            if (!isBluetoothEnabled()) {
+                Toast.makeText(
+                    this,
+                    "Veuillez activer le Bluetooth pour scanner",
+                    Toast.LENGTH_LONG
+                ).show()
+                return // Arrêter l'exécution si le Bluetooth est désactivé
+            }
+
+            if (isScanning) {
+                // Arrêter le scan
+                isScanning = false
+                Toast.makeText(this, "Scan arrêté", Toast.LENGTH_SHORT).show()
+                scanButton.setImageResource(R.drawable.bouton_play)
+                deviceListRecyclerView.visibility = View.GONE // Cacher la liste
+            } else {
+                // Démarrer le scan
+                isScanning = true
+                Toast.makeText(this, "Scan démarré", Toast.LENGTH_SHORT).show()
+                scanButton.setImageResource(R.drawable.bouton_pause)
+                deviceListRecyclerView.visibility = View.VISIBLE // Afficher la liste
+            }
         } else {
-            // Démarrer le scan
-            isScanning = true
-            Toast.makeText(this, "Scan démarré", Toast.LENGTH_SHORT).show()
-            scanButton.setImageResource(R.drawable.bouton_pause) // Icône Pause
-            deviceListRecyclerView.visibility = View.VISIBLE // Afficher la liste
+            Toast.makeText(
+                this,
+                "Le Bluetooth n'est pas disponible sur cet appareil",
+                Toast.LENGTH_LONG
+            ).show()
+            return
         }
     }
 
@@ -54,5 +78,13 @@ class ScanActivity : ComponentActivity() {
             Device("Appareil 2", "66:77:88:99:00:11"),
             Device("Appareil 3", "22:33:44:55:66:77")
         )
+    }
+    private fun isBluetoothEnabled(): Boolean {
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        return bluetoothAdapter.isEnabled
+    }
+    private fun isBluetoothAvailable(): Boolean {
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        return bluetoothManager.adapter != null
     }
 }
