@@ -32,6 +32,7 @@
         android:contentDescription="Icône de scan" />
     </LinearLayout>
 
+
     <!-- Bouton pour lancer/arrêter le scan -->
     <ImageButton
         android:id="@+id/scanButton"
@@ -50,4 +51,5 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:paddingTop="20dp"/>
+
 </LinearLayout>
