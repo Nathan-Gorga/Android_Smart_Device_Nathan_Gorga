@@ -1,82 +1,87 @@
 package fr.isen.nathangorga.androidsmartdevice
 
-import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
+import android.Manifest
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothProfile
-import android.content.Context
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import fr.isen.nathangorga.androidsmartdevice.ble.ServiceBLEFactory
 
 class DeviceActivity : ComponentActivity() {
-    private var bluetoothGatt: BluetoothGatt? = null
-    private lateinit var deviceNameTextView: TextView
-    private lateinit var statusTextView: TextView
-
-    @SuppressLint("MissingPermission", "MissingInflatedId")
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_device)
 
-        // Initialisation des vues
-        deviceNameTextView = findViewById(R.id.deviceName)
-        statusTextView = findViewById(R.id.status)
+        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("device", BluetoothDevice::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra("device")
+        }
 
-        // Récupération des informations de l'appareil depuis l'intent
-        val deviceName = intent.getStringExtra("DEVICE_NAME") ?: "Appareil inconnu"
-        val deviceAddress = intent.getStringExtra("DEVICE_ADDRESS")
-
-        // Mise à jour de l'UI
-        deviceNameTextView.text = "Connexion à : $deviceName"
-        statusTextView.text = "Connexion BLE en cours..." // Ajout du message de connexion
-
-        // Démarrer la connexion BLE
-        if (deviceAddress != null) {
-            val bluetoothAdapter =
-                (getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
-            val device: BluetoothDevice? = bluetoothAdapter.getRemoteDevice(deviceAddress)
-
-            if (device != null) {
-                bluetoothGatt = device.connectGatt(this, false, gattCallback)
-            } else {
-                statusTextView.text = "Appareil non trouvé"
+        setContent {
+            MaterialTheme {
+                device?.let {
+                    DeviceScreen(it)
+                } ?: Text("404")
             }
         }
     }
+}
 
-    private val gattCallback = object : BluetoothGattCallback() {
-        @SuppressLint("MissingPermission")
-        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            runOnUiThread {
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    statusTextView.text = "Connecté à ${gatt?.device?.name ?: "l'appareil"}"
-                    Log.d("DeviceActivity", "Connecté à ${gatt?.device?.address}")
-                    gatt?.discoverServices()
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    statusTextView.text = "Déconnecté"
-                    Log.d("DeviceActivity", "Déconnecté")
-                }
-            }
-        }
+@Composable
+fun DeviceScreen(device: BluetoothDevice) {
+    val context = LocalContext.current
+    var connectionState by remember { mutableStateOf("Non connecté") }
+    val bleService = remember { ServiceBLEFactory.getServiceBLEInstance() }
+    var connected by remember { mutableStateOf(false) }
 
-        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                val services = gatt?.services ?: listOf()
-                Log.d("DeviceActivity", "Services découverts: ${services.size}")
-                services.forEach { service ->
-                    Log.d("DeviceActivity", "Service UUID: ${service.uuid}")
-                }
+    LaunchedEffect(device) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            connectionState = "Connexion en cours..."
+            bleService.connectToDevice(context, device) {
+                connectionState = "Connecté à l'appareil"
+                connected = true
             }
+        } else {
+            connectionState = "Impossible de se connecter : Permissions manquantes"
         }
     }
 
-    @SuppressLint("MissingPermission")
-    override fun onDestroy() {
-        super.onDestroy()
-        bluetoothGatt?.close()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("État : $connectionState", style = MaterialTheme.typography.titleMedium)
+
+        if (connected) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { bleService.writeLed(1) }) {
+                Text("LED 1")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { bleService.writeLed(2) }) {
+                Text("LED 2")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { bleService.writeLed(3) }) {
+                Text("LED 3")
+            }
+        }
     }
 }

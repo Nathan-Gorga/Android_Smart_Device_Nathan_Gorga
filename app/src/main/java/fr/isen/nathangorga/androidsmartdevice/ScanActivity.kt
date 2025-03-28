@@ -1,203 +1,232 @@
 package fr.isen.nathangorga.androidsmartdevice
 
-import android.os.Bundle
 import android.Manifest
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.bluetooth.le.BluetoothLeScanner
+import android.app.Activity
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanSettings
-import android.content.Context
-import android.content.Intent
+import android.bluetooth.le.ScanResult
+import android.content.Context.BLUETOOTH_SERVICE
 import android.content.pm.PackageManager
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
-import android.widget.ImageButton
-import android.widget.Toast
+import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.annotation.RequiresPermission
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.delay
+import android.content.Intent
 
 class ScanActivity : ComponentActivity() {
-    // Bluetooth components
-    private lateinit var bluetoothAdapter: BluetoothAdapter
-    private lateinit var bluetoothLeScanner: BluetoothLeScanner
-    private val handler = Handler(Looper.getMainLooper())
-
-    // List to hold scanned devices
-    private val scanResults = mutableListOf<android.bluetooth.BluetoothDevice>()
-    private lateinit var deviceListAdapter: DeviceListAdapter
-
-    private val SCAN_PERIOD: Long = 10000 // Stop scan after 10 seconds
-    private var scanning = false
-
-    // Permissions
-    private val REQUEST_CODE_PERMISSIONS = 1
-    private val REQUIRED_PERMISSIONS = arrayOf(
-        Manifest.permission.BLUETOOTH_SCAN,
-        Manifest.permission.BLUETOOTH_CONNECT,
-        Manifest.permission.ACCESS_FINE_LOCATION
-    )
-
-    // UI components
-    private lateinit var deviceListRecyclerView: RecyclerView
-    private lateinit var scanButton: ImageButton
-
-    // Scan callback that updates the list of devices
-    private val scanCallback = object : ScanCallback() {
-        @SuppressLint("MissingPermission")
-        override fun onScanResult(callbackType: Int, result: android.bluetooth.le.ScanResult) {
-            val device = result.device
-            Log.d("ScanActivity", "Found device: ${device.address}, name: ${device.name}")
-            // Use a default name if null
-            if (!scanResults.any { it.address == device.address }) {
-                scanResults.add(device)
-                deviceListAdapter.notifyDataSetChanged()
-            }
-        }
-
-        override fun onScanFailed(errorCode: Int) {
-            super.onScanFailed(errorCode)
-            Toast.makeText(this@ScanActivity, "Scan failed with code: $errorCode", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_scan)
-
-        // Initialize UI components
-        deviceListRecyclerView = findViewById(R.id.deviceList)
-        scanButton = findViewById(R.id.scanButton)
-        deviceListRecyclerView.layoutManager = LinearLayoutManager(this)
-        // Adapter with click handling: when a device is clicked, go to DeviceActivity
-        deviceListAdapter = DeviceListAdapter(scanResults) { selectedDevice ->
-            onDeviceSelected(selectedDevice)
-        }
-        deviceListRecyclerView.adapter = deviceListAdapter
-
-        // Initialize BluetoothAdapter
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager.adapter
-        if (bluetoothAdapter == null) {
-            Toast.makeText(this, "Bluetooth is not available on this device", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Check runtime permissions
-        if (!hasPermissions()) {
-            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
-        }
-
-        // Set up the scan button click listener
-        scanButton.setOnClickListener {
-            toggleScan()
+        setContent {
+            ScanScreen()
         }
     }
 
-    @SuppressLint("MissingPermission")
-    private fun onDeviceSelected(device: android.bluetooth.BluetoothDevice) {
-        Toast.makeText(this, "Connexion à ${device.name ?: "l'appareil"}", Toast.LENGTH_SHORT).show()
-        val intent = Intent(this, DeviceActivity::class.java).apply {
-            putExtra("DEVICE_NAME", device.name ?: "Appareil inconnu")
-            putExtra("DEVICE_ADDRESS", device.address)
-        }
-        startActivity(intent)
+
+}
+
+@SuppressLint("ContextCastToActivity")
+@Composable
+fun ScanScreen() {
+    val context = LocalContext.current
+    val bluetoothManager = remember {
+        context.getSystemService(BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
+    }
+    val bluetoothAdapter = bluetoothManager.adapter
+
+    var isScanning by remember { mutableStateOf(false) }
+
+
+    var isBluetoothAvailable by remember { mutableStateOf(true) }
+    var isBluetoothEnabled by remember { mutableStateOf(true) }
+
+    // Vérifie Bluetooth au lancement (faire demande popup)
+    LaunchedEffect(Unit) {
+        isBluetoothAvailable = bluetoothAdapter != null
+        isBluetoothEnabled = bluetoothAdapter?.isEnabled == true
     }
 
-    private fun toggleScan() {
-        if (!isBluetoothAvailable()) {
-            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (!isBluetoothEnabled()) {
-            Toast.makeText(this, "Please enable Bluetooth", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (!hasPermissions()) {
-            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
-            return
-        }
-        if (scanning) {
-            stopBleScan()
-        } else {
-            startBleScan()
-        }
-    }
+    // Verif loca au lancement : OK
+    val activity = LocalContext.current as Activity
 
-    @SuppressLint("MissingPermission")
-    private fun startBleScan() {
-        if (scanning) return
-
-        bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner ?: return
-
-        // Clear previous scan results
-        scanResults.clear()
-        deviceListAdapter.notifyDataSetChanged()
-
-        val scanFilters = listOf<ScanFilter>()
-        val scanSettings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .build()
-
-        try {
-            bluetoothLeScanner.startScan(scanFilters, scanSettings, scanCallback)
-            scanning = true
-            scanButton.setImageResource(R.drawable.bouton_pause)
-            Toast.makeText(this, "Scanning in progress...", Toast.LENGTH_SHORT).show()
-
-            // Stop the scan automatically after SCAN_PERIOD milliseconds
-            handler.postDelayed({
-                stopBleScan()
-            }, SCAN_PERIOD)
-        } catch (e: SecurityException) {
-            Toast.makeText(this, "Permission error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun stopBleScan() {
-        if (!scanning) return
-
-        bluetoothLeScanner.stopScan(scanCallback)
-        scanning = false
-        scanButton.setImageResource(R.drawable.bouton_play)
-        Toast.makeText(this, "Scan stopped", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun isBluetoothEnabled(): Boolean {
-        return bluetoothAdapter.isEnabled
-    }
-
-    private fun isBluetoothAvailable(): Boolean {
-        return bluetoothAdapter != null
-    }
-
-    private fun hasPermissions(): Boolean {
-        val bluetoothScanPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-        val bluetoothConnectPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-        val locationPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-        return bluetoothScanPermission == PackageManager.PERMISSION_GRANTED &&
-                bluetoothConnectPermission == PackageManager.PERMISSION_GRANTED &&
-                locationPermission == PackageManager.PERMISSION_GRANTED
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
+    if (ContextCompat.checkSelfPermission(
+            activity,
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) != PackageManager.PERMISSION_GRANTED
     ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Toast.makeText(this, "Permissions granted", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Bluetooth permissions are required for scanning", Toast.LENGTH_LONG).show()
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+            2
+        )
+    }
+
+    // Perm BT de scanner & connect
+    if (ContextCompat.checkSelfPermission(
+            activity,
+            android.Manifest.permission.BLUETOOTH_CONNECT
+        ) != PackageManager.PERMISSION_GRANTED
+    ) {
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(android.Manifest.permission.BLUETOOTH_CONNECT),
+            3
+        )
+    }
+
+    if (ContextCompat.checkSelfPermission(
+            activity,
+            android.Manifest.permission.BLUETOOTH_SCAN
+        ) != PackageManager.PERMISSION_GRANTED
+    ) {
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(android.Manifest.permission.BLUETOOTH_SCAN),
+            4
+        )
+    }
+
+
+
+
+
+    val bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+    val scanResults = remember { mutableStateListOf<BluetoothDevice>() }
+    val scanCallback = remember {
+        object : ScanCallback() {
+            @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                val device = result.device
+                if (device.name != null && scanResults.none { it.address == device.address }) {
+                    scanResults.add(device)
+                }
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                println("Scan BLE failed: $errorCode")
             }
         }
     }
+
+    LaunchedEffect(isScanning) {
+        if (isScanning) {
+            bluetoothLeScanner?.startScan(scanCallback)
+
+            // Timeout auto après 20 secondes
+            delay(20_000)
+            bluetoothLeScanner?.stopScan(scanCallback)
+            isScanning = false
+        } else {
+            bluetoothLeScanner?.stopScan(scanCallback)
+        }
+    }
+
+
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+
+    ) {
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Scan BLE",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        when {
+            !isBluetoothAvailable -> {
+                Text(
+                    "Erreur : Bluetooth non disponible sur cet appareil.",
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            !isBluetoothEnabled -> {
+                Text(
+                    "Veuillez activer le Bluetooth pour continuer.",
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+
+            else -> {
+                val imageRes = if (isScanning) R.drawable.bouton_pause else R.drawable.bouton_play
+
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = if (isScanning) "Pause Scan" else "Start Scan",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .padding(bottom = 24.dp)
+                        .clickable { isScanning = !isScanning }
+                )
+
+                if (isScanning) {
+                    Text("Appareils détectés :", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (scanResults.isEmpty()) {
+                        Text(
+                            "Aucun appareil trouvé pour le moment...",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else {
+                        LazyColumn {
+                            items(scanResults) { device ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                        .clickable {
+                                            val intent = Intent(context, DeviceActivity::class.java)
+                                            intent.putExtra("device", device)
+                                            context.startActivity(intent)
+                                        },
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(text = device.name ?: "Appareil inconnu", style = MaterialTheme.typography.bodyLarge)
+                                        Text(text = "Adresse : ${device.address}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Text("Aucun scan en cours", style = MaterialTheme.typography.bodyMedium)
+                }
+
+
+            }
+
+        }
+    }
+
+
 }

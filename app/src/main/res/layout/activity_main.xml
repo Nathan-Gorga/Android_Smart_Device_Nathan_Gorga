@@ -1,40 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="16dp">
+    android:padding="24dp">
 
+    <!-- Icône -->
     <ImageView
+        android:src="@mipmap/ic_launcher"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:src="@drawable/bluetooth"
-        android:contentDescription="Icône de l'application"/>
+        android:contentDescription="App Icon" />
 
+    <!-- Titre -->
     <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:text="Android Smart Device"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:paddingTop="16dp"/>
-
-    <TextView
+        android:layout_marginTop="16dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Pour démarer votre interactions avec les appareils BLE environants, cliquer sur LANCER LE SCAN"
-        android:textSize="16sp"
-        android:paddingTop="8dp"
-        android:textAlignment="center"/>
+        android:layout_height="wrap_content" />
 
+    <!-- Description -->
+    <TextView
+        android:text="Cette application vous permet de scanner et interagir avec des appareils Bluetooth Low Energy à proximité."
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        android:textAlignment="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Bouton Scan -->
     <Button
         android:id="@+id/scanButton"
+        android:text="Scanner les appareils BLE"
+        android:layout_marginTop="24dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Lancer le scan"
-        android:padding="10dp"
-        android:background="@drawable/button_gradient"
-        android:layout_marginTop="20dp"/>
-
+        android:layout_height="wrap_content" />
 </LinearLayout>
