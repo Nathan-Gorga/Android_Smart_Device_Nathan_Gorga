@@ -1,36 +1,37 @@
 package fr.isen.nathangorga.androidsmartdevice
 
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothDevice
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-data class Device(val name: String, val macAddress: String)
+class DeviceListAdapter(
+    private val devices: List<BluetoothDevice>,
+    private val onDeviceClick: (BluetoothDevice) -> Unit
+) : RecyclerView.Adapter<DeviceListAdapter.DeviceViewHolder>() {
 
-class DeviceListAdapter(private val deviceList: List<Device>) : RecyclerView.Adapter<DeviceListAdapter.DeviceViewHolder>() {
+    class DeviceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val deviceName: TextView = view.findViewById(R.id.deviceName)
+        val deviceAddress: TextView = view.findViewById(R.id.deviceAddress)
+    }
 
-    // Création d'une vue pour chaque élément de la liste
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeviceViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(android.R.layout.simple_list_item_2, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_device, parent, false)
         return DeviceViewHolder(view)
     }
 
-    // Lier les données (nom et adresse MAC) à chaque vue
+    @SuppressLint("MissingPermission")
     override fun onBindViewHolder(holder: DeviceViewHolder, position: Int) {
-        val device = deviceList[position]
-        holder.nameTextView.text = device.name
-        holder.macAddressTextView.text = device.macAddress
+        val device = devices[position]
+        holder.deviceName.text = device.name ?: "Appareil inconnu"
+        holder.deviceAddress.text = device.address
+
+        holder.itemView.setOnClickListener { onDeviceClick(device) }
     }
 
-    // Nombre d'éléments dans la liste
-    override fun getItemCount(): Int {
-        return deviceList.size
-    }
-
-    // ViewHolder pour lier les vues aux éléments de la liste
-    class DeviceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val nameTextView: TextView = view.findViewById(android.R.id.text1)
-        val macAddressTextView: TextView = view.findViewById(android.R.id.text2)
-    }
+    override fun getItemCount() = devices.size
 }
