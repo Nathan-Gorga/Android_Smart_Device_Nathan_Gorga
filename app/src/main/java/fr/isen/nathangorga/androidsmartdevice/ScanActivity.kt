@@ -193,7 +193,7 @@ fun ScanScreen() {
 
                     if (scanResults.isEmpty()) {
                         Text(
-                            "Aucun appareil trouvé pour le moment...",
+                            "Scan en cours...",
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
